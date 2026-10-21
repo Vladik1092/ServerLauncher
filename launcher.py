@@ -514,6 +514,7 @@ def launch_minecraft(version=MINECRAFT_VERSION, username="Player", ram_gb=4):
         "username": username,
         "uuid": offline_uuid,
         "token": "0",
+        "gameDirectory": minecraft_directory,
         "server": SERVER_IP,
         "port": str(SERVER_PORT),
         "jvmArguments": jvm_args,
