@@ -1,0 +1,4 @@
+minecraft-launcher-lib==6.5
+gdown
+Pillow
+psutil
