@@ -93,7 +93,7 @@ def install_minecraft(update_status, version=MINECRAFT_VERSION):
     callback = {"setStatus": set_status, "setProgress": set_progress, "setMax": set_max_progress}
 
     minecraft_launcher_lib.install.install_minecraft_version(
-        version=version,
+        versionid=version,
         minecraft_directory=minecraft_directory,
         callback=callback,
     )
