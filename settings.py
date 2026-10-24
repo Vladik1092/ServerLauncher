@@ -11,8 +11,8 @@ RESOURCEPACK_URL = "https://drive.google.com/uc?export=download&id=1NSehAinMArh2
 SHADERPACK_URL = "https://drive.google.com/uc?export=download&id=1_4Otj0OjlVeh2VG0oYImnxejs6e5tw4J"
 
 MODPACK_VERSION = "1.0.9"
-RESOURCEPACK_VERSION = "1.0.5"
-SHADERPACK_VERSION = "1.0.10"
+RESOURCEPACK_VERSION = "1.0.6"
+SHADERPACK_VERSION = "1.0.11"
 
 # Пути
 minecraft_directory = minecraft_launcher_lib.utils.get_minecraft_directory()
