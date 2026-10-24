@@ -7,8 +7,8 @@ SERVER_PORT = "25674"
 MINECRAFT_VERSION = "1.19.2"
 
 MODS_URL = "https://www.dropbox.com/scl/fi/cu85n2w0ei1htlcld1e5s/mods.zip?rlkey=te5a5zg80fhd94ez1s99pgkot&st=2qegk6at&dl=1"
-RESOURCEPACK_URL = "https://drive.google.com/file/d/1NSehAinMArh2YvWfR0YTif8PSKaWKDQm/view?usp=drive_link"
-SHADERPACK_URL = "https://drive.google.com/file/d/1_4Otj0OjlVeh2VG0oYImnxejs6e5tw4J/view?usp=drive_link"
+RESOURCEPACK_URL = "https://drive.google.com/uc?export=download&id=1NSehAinMArh2YvWfR0YTif8PSKaWKDQm"
+SHADERPACK_URL = "https://drive.google.com/uc?export=download&id=1_4Otj0OjlVeh2VG0oYImnxejs6e5tw4J"
 
 MODPACK_VERSION = "1.0.9"
 RESOURCEPACK_VERSION = "1.0.5"
