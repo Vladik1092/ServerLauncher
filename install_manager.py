@@ -1,29 +1,18 @@
-import hashlib
 import os
 import shutil
-import minecraft_launcher_lib
-from clouddl import grab
 import urllib.request
 import zipfile
-
-from utils import is_mods_need_update
-
-# Импортируем настройки и вспомогательные функции
 from settings import (
     minecraft_directory, MODS_URL, MODPACK_VERSION, MODPACK_VERSION_FILE,
-    RESOURCEPACK_URL, RESOURCEPACK_VERSION, RESOURCEPACK_VERSION_FILE,
-    SHADERPACK_URL, SHADERPACK_VERSION, SHADERPACK_VERSION_FILE,
-    MINECRAFT_VERSION, REQUIRED_MODS
+    REQUIRED_MODS, MINECRAFT_VERSION
 )
-from utils import fix_nested_folder, save_mods_etag
-
-
-# Проверки установленного клиента
+from utils import is_mods_need_update, save_mods_etag
 
 def is_minecraft_installed(version=MINECRAFT_VERSION):
     try:
-        installed_versions = minecraft_launcher_lib.utils.get_installed_versions(minecraft_directory)
-        for v in installed_versions:
+        import minecraft_launcher_lib
+        installed = minecraft_launcher_lib.utils.get_installed_versions(minecraft_directory)
+        for v in installed:
             if v["id"] == version:
                 return True
         return False
@@ -31,17 +20,16 @@ def is_minecraft_installed(version=MINECRAFT_VERSION):
         print(f"Ошибка проверки версий: {e}")
         return False
 
-
 def is_forge_installed(forge_id):
     try:
-        installed_versions = minecraft_launcher_lib.utils.get_installed_versions(minecraft_directory)
-        for v in installed_versions:
+        import minecraft_launcher_lib
+        installed = minecraft_launcher_lib.utils.get_installed_versions(minecraft_directory)
+        for v in installed:
             if v["id"] == forge_id:
                 return True
         return False
     except Exception:
         return False
-
 
 def is_modpack_installed():
     marker = os.path.join(minecraft_directory, MODPACK_VERSION_FILE)
@@ -54,8 +42,8 @@ def is_modpack_installed():
     except Exception:
         return False
 
-
 def is_resourcepack_installed():
+    from settings import RESOURCEPACK_VERSION, RESOURCEPACK_VERSION_FILE
     marker = os.path.join(minecraft_directory, RESOURCEPACK_VERSION_FILE)
     if not os.path.isfile(marker):
         return False
@@ -66,8 +54,8 @@ def is_resourcepack_installed():
     except Exception:
         return False
 
-
 def is_shaderpack_installed():
+    from settings import SHADERPACK_VERSION, SHADERPACK_VERSION_FILE
     marker = os.path.join(minecraft_directory, SHADERPACK_VERSION_FILE)
     if not os.path.isfile(marker):
         return False
@@ -78,10 +66,9 @@ def is_shaderpack_installed():
     except Exception:
         return False
 
-
-# Установка
-
 def install_minecraft(update_status, version=MINECRAFT_VERSION):
+    import minecraft_launcher_lib
+
     def set_status(status: str):
         update_status(status)
 
@@ -103,20 +90,20 @@ def install_minecraft(update_status, version=MINECRAFT_VERSION):
         callback=callback,
     )
 
-
 def install_forge(update_status, vanilla_version=MINECRAFT_VERSION):
+    import minecraft_launcher_lib
+
     forge_version = minecraft_launcher_lib.forge.find_forge_version(vanilla_version)
     if forge_version is None:
-        raise Exception(f"Forge для версии {vanilla_version} не найден")
+        raise Exception(f"Фордж для версии {vanilla_version} не найден")
 
     installed_id = minecraft_launcher_lib.forge.forge_to_installed_version(forge_version)
-
     if is_forge_installed(installed_id):
-        update_status(f"Forge уже установлен: {installed_id}")
+        update_status(f"Фордж уже установлен: {installed_id}")
         return installed_id
 
     if not minecraft_launcher_lib.forge.supports_automatic_install(forge_version):
-        raise Exception(f"Forge {forge_version} не поддерживает автоматическую установку")
+        raise Exception(f"Фордж {forge_version} не поддерживает автоматическую установку")
 
     def set_status(status: str):
         update_status(status)
@@ -124,7 +111,7 @@ def install_forge(update_status, vanilla_version=MINECRAFT_VERSION):
     def set_progress(progress: int):
         if max_progress > 0:
             percent = int(progress / max_progress * 100)
-            update_status(f"Установка Forge... {percent}%")
+            update_status(f"Установка Фордж... {percent}%")
 
     def set_max_progress(max_p: int):
         nonlocal max_progress
@@ -140,17 +127,6 @@ def install_forge(update_status, vanilla_version=MINECRAFT_VERSION):
     )
     return installed_id
 
-def get_file_hash(filepath):
-    """Считает SHA-256 хеш файла."""
-    hasher = hashlib.sha256()
-    with open(filepath, 'rb') as f:
-        buf = f.read(65536)
-        while len(buf) > 0:
-            hasher.update(buf)
-            buf = f.read(65536)
-    return hasher.hexdigest()
-
-
 def install_mods(update_status):
     mods_dir = os.path.join(minecraft_directory, "mods")
     backup_dir = os.path.join(minecraft_directory, "mods_backup")
@@ -161,6 +137,7 @@ def install_mods(update_status):
     current_mods = set()
     if os.path.isdir(mods_dir):
         current_mods = {f for f in os.listdir(mods_dir) if f.endswith('.jar')}
+    print(f"[DEBUG] current_mods: {current_mods}")
 
     # 2. Находим моды ИГРОКА (те, которых нет в REQUIRED_MODS)
     player_mods = current_mods - REQUIRED_MODS
@@ -178,12 +155,20 @@ def install_mods(update_status):
             dst = os.path.join(backup_dir, mod)
             if os.path.isfile(src):
                 shutil.copy2(src, dst)
+        update_status(f"Моды игрока сохранены в mods_backup/. Они НЕ включены (чтобы не было конфликтов).")
     else:
         print(f"[DEBUG] Модов игрока нет.")
 
     # 4. Проверяем, нужно ли обновление
     if not is_mods_need_update(MODS_URL):
         update_status("Моды актуальны.")
+        # Даже если не нужно обновление, НО есть моды игрока — удаляем их из mods, чтобы не было конфликтов
+        if player_mods:
+            for mod in player_mods:
+                file_path = os.path.join(mods_dir, mod)
+                if os.path.isfile(file_path):
+                    os.remove(file_path)
+            update_status("Моды игрока отключены (перемещены в mods_backup/).")
         return True
 
     # 5. Скачиваем архив
@@ -204,6 +189,9 @@ def install_mods(update_status):
 
     try:
         with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+            bad_file = zip_ref.testzip()
+            if bad_file is not None:
+                raise Exception(f"Поврежденный файл: {bad_file}")
             zip_ref.extractall(temp_dir)
     except Exception as e:
         update_status(f"Ошибка распаковки: {e}")
@@ -227,17 +215,11 @@ def install_mods(update_status):
             shutil.move(src, dst)
         shutil.rmtree(nested_mods)
 
-    # 8. Возвращаем моды игрока в mods_temp/
-    if player_mods:
-        for mod in player_mods:
-            src = os.path.join(backup_dir, mod)
-            dst = os.path.join(temp_dir, mod)
-            if os.path.isfile(src):
-                shutil.copy2(src, dst)
-
-    # 9. Заменяем mods на mods_temp
+    # 8. Удаляем старую папку mods (и моды игрока в ней, они уже в бэкапе)
     if os.path.isdir(mods_dir):
         shutil.rmtree(mods_dir)
+
+    # 9. Переименовываем temp в mods
     os.rename(temp_dir, mods_dir)
 
     # 10. Удаляем zip
@@ -249,46 +231,47 @@ def install_mods(update_status):
     with open(os.path.join(minecraft_directory, MODPACK_VERSION_FILE), "w", encoding="utf-8") as f:
         f.write(MODPACK_VERSION)
 
-    update_status(f"Моды обновлены. Сохранено модов игрока: {len(player_mods)}")
+    # 12. Сообщение
+    if player_mods:
+        update_status(f"Моды обновлены. Моды игрока ({len(player_mods)} шт.) в mods_backup/ (отключены).")
+    else:
+        update_status("Моды обновлены.")
     return True
 
 def install_resourcepack(update_status):
-    update_status("Скачивание ресурспака...")
+    from settings import RESOURCEPACK_URL, RESOURCEPACK_VERSION, RESOURCEPACK_VERSION_FILE
+    from clouddl import grab
+    from utils import fix_nested_folder
 
     resourcepacks_dir = os.path.join(minecraft_directory, "resourcepacks")
     os.makedirs(resourcepacks_dir, exist_ok=True)
 
-    grab(RESOURCEPACK_URL, resourcepacks_dir + os.sep)
+    update_status("Скачивание ресурспака...")
+    grab(RESOURCEPACK_URL, os.path.join(resourcepacks_dir, "server_pack.zip"))
 
     fix_nested_folder("resourcepacks")
 
-    with open(os.path.join(minecraft_directory, RESOURCEPACK_VERSION_FILE), "w", encoding="utf-8") as f:
+    marker = os.path.join(minecraft_directory, RESOURCEPACK_VERSION_FILE)
+    with open(marker, "w", encoding="utf-8") as f:
         f.write(RESOURCEPACK_VERSION)
 
-    update_status("Ресурспак установлен!")
-
+    update_status("Ресурспак установлен.")
 
 def install_shaderpack(update_status):
-    update_status("Скачивание шейдера...")
-    print("[shader] старт установки")
+    from settings import SHADERPACK_URL, SHADERPACK_VERSION, SHADERPACK_VERSION_FILE
+    from clouddl import grab
+    from utils import fix_nested_folder
 
     shaderpacks_dir = os.path.join(minecraft_directory, "shaderpacks")
     os.makedirs(shaderpacks_dir, exist_ok=True)
 
-    try:
-        grab(SHADERPACK_URL, shaderpacks_dir + os.sep)
-        print("[shader] grab завершён")
-    except Exception as e:
-        print(f"[shader] ОШИБКА в grab: {e}")
-        raise
+    update_status("Скачивание шейдера...")
+    grab(SHADERPACK_URL, os.path.join(shaderpacks_dir, "server_shader.zip"))
 
-    try:
-        fix_nested_folder("shaderpacks")
-        print("[shader] fix завершён")
-    except Exception as e:
-        print(f"[shader] ОШИБКА в fix: {e}")
+    fix_nested_folder("shaderpacks")
 
-    with open(os.path.join(minecraft_directory, SHADERPACK_VERSION_FILE), "w", encoding="utf-8") as f:
+    marker = os.path.join(minecraft_directory, SHADERPACK_VERSION_FILE)
+    with open(marker, "w", encoding="utf-8") as f:
         f.write(SHADERPACK_VERSION)
 
-    update_status("Шейдер установлен!")
+    update_status("Шейдер установлен.")
