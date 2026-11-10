@@ -36,9 +36,11 @@ entry_nickname = None
 ram_var = None
 lb = None
 btn_play = None
+bg_label = None
 
 
 # --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ИНТЕРФЕЙСА ---
+
 
 def update_status(text):
     if lb:
@@ -156,11 +158,7 @@ def play_thread():
         forge_id = install_forge(update_status, MINECRAFT_VERSION)
         update_status(f"Forge готов: {forge_id}")
 
-        # 3. Моды (с проверкой ETag)
-        if is_mods_need_update(MODS_URL):
-            install_mods(update_status)
-        else:
-            update_status("Моды актуальны.")
+        install_mods(update_status)
 
         # 4. Ресурспак
         if is_resourcepack_installed():
@@ -199,26 +197,59 @@ def create_window():
     root = tk.Tk()
     root.title("ИС-25-05 Launcher")
     root.geometry("900x660")
-    root.resizable(False, False)
+    root.minsize(700, 500)
+    root.resizable(True, True)
     root.configure(bg=COLOR_BG)
 
     ICON_URL = "https://img.icons8.ru/?size=100&id=TUH60vMtAmJ0&format=png&color=000000"
     set_icon_from_url(root, ICON_URL)
 
-    # Фоновое изображение
-    bg_image = None
-    if PIL_AVAILABLE and os.path.isfile("background.png"):
-        try:
-            bg_pil = Image.open("background.png").resize((900, 660))
-            overlay = Image.new("RGBA", bg_pil.size, (0, 0, 0, 130))
-            bg_pil = Image.alpha_composite(bg_pil.convert("RGBA"), overlay).convert("RGB")
-            bg_image = ImageTk.PhotoImage(bg_pil)
-            bg_label = tk.Label(root, image=bg_image, bd=0)
-            bg_label.place(x=0, y=0, relwidth=1, relheight=1)
-        except Exception as e:
-            print(f"Не удалось загрузить фон: {e}")
+    # --- ФОН ---
+    original_bg = None
 
-    # Главная панель
+    def resource_path(relative_path):
+        try:
+            base_path = sys._MEIPASS
+        except Exception:
+            base_path = os.path.abspath(".")
+        return os.path.join(base_path, relative_path)
+
+    bg_path = resource_path("background.png")
+    if PIL_AVAILABLE and os.path.isfile(bg_path):
+        original_bg = Image.open(bg_path).convert("RGBA")
+
+    bg_label = tk.Label(root, bd=0)
+    bg_label.place(x=0, y=0, relwidth=1, relheight=1)
+
+    resize_timer = None
+
+    def do_resize():
+        nonlocal resize_timer
+        resize_timer = None
+        if original_bg is None:
+            return
+        try:
+            w = root.winfo_width()
+            h = root.winfo_height()
+            bg_resized = original_bg.resize((w, h), Image.Resampling.BILINEAR)
+            overlay = Image.new("RGBA", bg_resized.size, (0, 0, 0, 130))
+            bg_final = Image.alpha_composite(bg_resized, overlay).convert("RGB")
+            new_photo = ImageTk.PhotoImage(bg_final)
+            bg_label.config(image=new_photo)
+            bg_label.image = new_photo
+        except Exception as e:
+            print(f"Ошибка ресайза фона: {e}")
+
+    def on_resize(event):
+        nonlocal resize_timer
+        if resize_timer is not None:
+            root.after_cancel(resize_timer)
+        resize_timer = root.after(150, do_resize)
+
+    root.bind("<Configure>", on_resize)
+    root.after(100, do_resize)
+
+    # --- ГЛАВНАЯ ПАНЕЛЬ (обычный Frame) ---
     main_frame = tk.Frame(root, bg=COLOR_PANEL, bd=0)
     main_frame.place(relx=0.5, rely=0.5, anchor="center", width=580, height=580)
 
@@ -229,16 +260,14 @@ def create_window():
     inner.pack(fill="both", expand=True, padx=26, pady=22)
 
     # Заголовок
-    tk.Label(inner, text="ZOMBIE IS-25-05", font=("Arial", 22, "bold"), fg=COLOR_ACCENT, bg=COLOR_PANEL).pack(
-        pady=(0, 2))
-    tk.Label(inner, text="Launcher • 1.1", font=("Arial", 10), fg=COLOR_TEXT_DIM, bg=COLOR_PANEL).pack(pady=(0, 18))
+    tk.Label(inner, text="ZOMBIE IS-25-05", font=("Arial", 22, "bold"), fg=COLOR_ACCENT, bg=COLOR_PANEL).pack(pady=(0, 2))
+    tk.Label(inner, text="Launcher • 1.2", font=("Arial", 10), fg=COLOR_TEXT_DIM, bg=COLOR_PANEL).pack(pady=(0, 18))
 
     saved = load_settings()
 
     # Никнейм
-    tk.Label(inner, text="Никнейм", font=("Arial", 11, "bold"), fg=COLOR_TEXT, bg=COLOR_PANEL, anchor="w").pack(
-        fill="x")
-    entry_nickname = tk.Entry(inner, width=40, font=("Arial", 12), bg="#2b2b2b", fg=COLOR_TEXT,
+    tk.Label(inner, text="Никнейм", font=("Arial", 11, "bold"), fg=COLOR_TEXT, bg=COLOR_PANEL, anchor="w").pack(fill="x")
+    entry_nickname = tk.Entry(inner, font=("Arial", 12), bg="#2b2b2b", fg=COLOR_TEXT,
                               insertbackground=COLOR_TEXT, relief="flat", bd=0)
     entry_nickname.insert(0, saved["nickname"])
     entry_nickname.pack(fill="x", ipady=6, pady=(3, 14))
@@ -250,13 +279,11 @@ def create_window():
 
     ram_header = tk.Frame(inner, bg=COLOR_PANEL)
     ram_header.pack(fill="x")
-    tk.Label(ram_header, text="Оперативная память", font=("Arial", 11, "bold"), fg=COLOR_TEXT, bg=COLOR_PANEL).pack(
-        side="left")
-    tk.Label(ram_header, text=f"(макс. {max_ram} ГБ)", font=("Arial", 9), fg=COLOR_TEXT_DIM, bg=COLOR_PANEL).pack(
-        side="right")
+    tk.Label(ram_header, text="Оперативная память", font=("Arial", 11, "bold"), fg=COLOR_TEXT, bg=COLOR_PANEL).pack(side="left")
+    tk.Label(ram_header, text=f"(макс. {max_ram} ГБ)", font=("Arial", 9), fg=COLOR_TEXT_DIM, bg=COLOR_PANEL).pack(side="right")
 
     ram_var = tk.IntVar(value=default_ram)
-    spin_ram = tk.Spinbox(inner, from_=1, to=max_ram, textvariable=ram_var, width=6, font=("Arial", 12), bg="#2b2b2b",
+    spin_ram = tk.Spinbox(inner, from_=1, to=max_ram, textvariable=ram_var, font=("Arial", 12), bg="#2b2b2b",
                           fg=COLOR_TEXT, buttonbackground=COLOR_BTN, relief="flat", bd=0, insertbackground=COLOR_TEXT)
     spin_ram.pack(anchor="w", pady=(3, 14), ipady=4)
 
@@ -275,7 +302,7 @@ def create_window():
     # Кнопка Играть
     btn_play = make_mc_button(inner, "ИГРАТЬ", command=on_play_click, width=520, height=52, font_size=18,
                               bg=COLOR_PANEL)
-    btn_play.pack(pady=(2, 0))
+    btn_play.pack(pady=(2, 0), fill="x")
 
     # Подпись снизу
     tk.Label(
