@@ -69,6 +69,8 @@ def get_java_path():
 def fix_nested_folder(folder_name):
     """Убирает ЛЮБУЮ вложенность и старые _dup-папки внутри .minecraft/<folder>/"""
     base_dir = os.path.join(minecraft_directory, folder_name)
+    print(f"[FIX] base_dir: {base_dir}") # <-- ВРЕМЕННО
+    print(f"[FIX] exists: {os.path.isdir(base_dir)}")
 
     if not os.path.isdir(base_dir):
         return
@@ -107,6 +109,8 @@ def fix_nested_folder(folder_name):
                 continue
 
             shutil.move(src, dst)
+
+
 
 
         try:

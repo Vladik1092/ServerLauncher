@@ -1,6 +1,10 @@
-.venv/
-.idea/
 __pycache__/
-build/
+*.pyc
+.venv/
+venv/
 dist/
+build/
 *.spec
+launcher_settings.json
+mods_etag.txt
+config/
