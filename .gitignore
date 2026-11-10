@@ -6,5 +6,9 @@ dist/
 build/
 *.spec
 launcher_settings.json
+<<<<<<< HEAD
 mods_etag.txt
 config/
+=======
+mods_etag.txt
+>>>>>>> 63b881b69904a162a6f06f5df89c4cbe489311e3
