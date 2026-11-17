@@ -8,3 +8,4 @@ build/
 launcher_settings.json
 mods_etag.txt
 config/
+.idea
