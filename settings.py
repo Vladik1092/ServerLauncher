@@ -72,6 +72,6 @@ REQUIRED_MODS = {
     "voicechat-forge-1.19.2-2.6.24.jar",
     "worldedit-mod-7.2.12.jar",
     "zombieawareness-1.19.2-1.12.3.jar",
-    "zlmod-0.1.jar"
+    "zlmod-0.1.jar" #new mod
 }
 
