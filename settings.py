@@ -15,7 +15,8 @@ RESOURCEPACK_VERSION = "1.0.6"
 SHADERPACK_VERSION = "1.0.11"
 
 # Пути
-minecraft_directory = minecraft_launcher_lib.utils.get_minecraft_directory()
+minecraft_directory = os.path.join(os.getenv('LOCALAPPDATA'), "ZombieLauncher", ".minecraft")
+os.makedirs(minecraft_directory, exist_ok=True)
 SETTINGS_FILE = os.path.join(minecraft_directory, "launcher_settings.json")
 MODPACK_VERSION_FILE = "modpack_version.txt"
 RESOURCEPACK_VERSION_FILE = "resourcepack_version.txt"
