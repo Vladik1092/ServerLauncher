@@ -201,8 +201,20 @@ def create_window():
     root.resizable(True, True)
     root.configure(bg=COLOR_BG)
 
-    ICON_URL = "https://img.icons8.ru/?size=100&id=TUH60vMtAmJ0&format=png&color=000000"
-    set_icon_from_url(root, ICON_URL)
+    try:
+
+        local_app_data = os.getenv('LOCALAPPDATA')
+        external_icon = os.path.join(local_app_data, "ZombieLauncher", "icon.ico") if local_app_data else ""
+
+        base_path = getattr(sys, '_MEIPASS', os.path.abspath("."))
+        bundled_icon = os.path.join(base_path, "icon.ico")
+
+        if os.path.exists(external_icon):
+            root.iconbitmap(external_icon)
+        elif os.path.exists(bundled_icon):
+            root.iconbitmap(bundled_icon)
+    except Exception as e:
+        print(f"Не удалось загрузить иконку окна: {e}")
 
     # --- ФОН ---
     original_bg = None
