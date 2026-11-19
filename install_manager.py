@@ -238,16 +238,31 @@ def install_mods(update_status):
         update_status("Моды обновлены.")
     return True
 
+
 def install_resourcepack(update_status):
     from settings import RESOURCEPACK_URL, RESOURCEPACK_VERSION, RESOURCEPACK_VERSION_FILE
-    from clouddl import grab
     from utils import fix_nested_folder
+    import zipfile
 
     resourcepacks_dir = os.path.join(minecraft_directory, "resourcepacks")
     os.makedirs(resourcepacks_dir, exist_ok=True)
 
+    zip_path = os.path.join(resourcepacks_dir, "server_pack.zip")
+
     update_status("Скачивание ресурспака...")
-    grab(RESOURCEPACK_URL, os.path.join(resourcepacks_dir, "server_pack.zip"))
+    try:
+        urllib.request.urlretrieve(RESOURCEPACK_URL, zip_path)
+    except Exception as e:
+        update_status(f"Ошибка скачивания ресурспака: {e}")
+        if os.path.isfile(zip_path):
+            os.remove(zip_path)
+        return False
+
+    # Проверка, что скачался именно ZIP
+    if not zipfile.is_zipfile(zip_path):
+        update_status("Ошибка: скачался не архив. Проверьте ссылку на ресурспак.")
+        os.remove(zip_path)
+        return False
 
     fix_nested_folder("resourcepacks")
 
@@ -256,17 +271,33 @@ def install_resourcepack(update_status):
         f.write(RESOURCEPACK_VERSION)
 
     update_status("Ресурспак установлен.")
+    return True
+
 
 def install_shaderpack(update_status):
     from settings import SHADERPACK_URL, SHADERPACK_VERSION, SHADERPACK_VERSION_FILE
-    from clouddl import grab
     from utils import fix_nested_folder
+    import zipfile
 
     shaderpacks_dir = os.path.join(minecraft_directory, "shaderpacks")
     os.makedirs(shaderpacks_dir, exist_ok=True)
 
+    zip_path = os.path.join(shaderpacks_dir, "server_shader.zip")
+
     update_status("Скачивание шейдера...")
-    grab(SHADERPACK_URL, os.path.join(shaderpacks_dir, "server_shader.zip"))
+    try:
+        urllib.request.urlretrieve(SHADERPACK_URL, zip_path)
+    except Exception as e:
+        update_status(f"Ошибка скачивания шейдера: {e}")
+        if os.path.isfile(zip_path):
+            os.remove(zip_path)
+        return False
+
+    # Проверка, что скачался именно ZIP
+    if not zipfile.is_zipfile(zip_path):
+        update_status("Ошибка: скачался не архив. Проверьте ссылку на шейдер.")
+        os.remove(zip_path)
+        return False
 
     fix_nested_folder("shaderpacks")
 
@@ -275,3 +306,4 @@ def install_shaderpack(update_status):
         f.write(SHADERPACK_VERSION)
 
     update_status("Шейдер установлен.")
+    return True

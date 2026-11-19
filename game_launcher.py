@@ -30,6 +30,7 @@ def launch_minecraft(version, username, ram_gb):
         "server": SERVER_IP,
         "jvmArguments": jvm_args,
         "defaultExecutablePath": java_path,
+        "gameDirectory": minecraft_directory
     }
 
     try:
